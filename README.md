@@ -72,6 +72,13 @@ ss_fit = MultiSuSiE.multisusie_rss(
 
 MultiSuSiE with summary statistics (`multisusie_rss`) runtime and memory requirements can be drastically improved by setting `low_memory_mode = True`. This parameter is not enabled by default because the input summary statistic and LD matrix numpy arrays will be mutated over the course of function evaluation and will not be returned to their initial state. If you understand this, we recommend setting `low_memory_mode = True`.
 
+## Running MultiSuSiE on binary traits
+
+We recommend only applying MultiSuSiE to binary traits when the MAF, case fraction, and sample size conditions provided in Loh et al. 2018 Nature Genetics are met (see p. 10-11, 24 of the [supplement](https://static-content.springer.com/esm/art%3A10.1038%2Fs41588-018-0144-6/MediaObjects/41588_2018_144_MOESM1_ESM.pdf)).
+
+When running MultiSuSiE on binary traits, we recommend providing `b_list`, `s_list`, and `varY_list`, not `z_list` and setting `var_y = residual_variance = 1/(phi*(1-phi))` with `phi = n_cases/total_n` (separately for each ancestry). This suggestion was initially provided by the SuSiE authors [here](https://github.com/stephenslab/susieR/issues/74). Many thanks to Sophia Gunn for bringing this issue to our attention.
+
+
 ## Questions?
 
 Feel free to open an issue on GitHub (preferred) or email jordanerossen@gmail.com.
