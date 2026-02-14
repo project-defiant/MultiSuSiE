@@ -1,5 +1,8 @@
 import numpy as np
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / 'src'))
 import MultiSuSiE
 
 geno_YRI = np.loadtxt('example_data/geno_YRI.txt')
@@ -40,35 +43,35 @@ with np.errstate(divide='ignore',invalid='ignore'):
 
 YTY_list = [y.dot(y) for y in y_list]
 varY_list = [np.var(y, ddof = 1) for y in y_list]
+rho = np.array([[1, 0.75, 0.75], [0.75, 1, 0.75], [0.75, 0.75, 1]])
+common_multisusie_kwargs = dict(
+    rho = rho,
+    L = 10,
+    scaled_prior_variance = 0.2,
+    min_abs_corr = 0,
+    float_type = np.float64,
+    estimate_prior_method = 'EM',
+    pop_spec_effect_priors = False,
+    iter_before_zeroing_effects = 0,
+)
 
-# TEST 1: test and summary statistic and individual level multiSuSiE give identical results
+# TEST 1: test that summary statistic and individual level MultiSuSiE give identical results
 ss_fit = MultiSuSiE.multisusie_rss(
     b_list = beta_hat_list,
     s_list = se_list,
     R_list = R_list,
     varY_list = varY_list,
-    rho = np.array([[1, 0.75, 0.75], [0.75, 1, 0.75], [0.75, 0.75, 1]]),
     population_sizes = N_list,
-    L = 10,
-    scaled_prior_variance = 0.2,
     low_memory_mode = False,
-    min_abs_corr = 0,
     recover_R = False,
-    float_type = np.float64,
-    estimate_prior_method = 'EM',
-    pop_spec_effect_priors = False,
-    iter_before_zeroing_effects = 0,
     single_population_mac_thresh = 0,
+    **common_multisusie_kwargs,
 )
 indiv_fit = MultiSuSiE.multisusie(
     X_list = geno_list,
     Y_list = y_list,
-    rho = np.array([[1, 0.75, 0.75], [0.75, 1, 0.75], [0.75, 0.75, 1]]),
-    L = 10,
-    scaled_prior_variance = 0.2,
     standardize = False,
-    intercept = False,
-    float_dtype = np.float64
+    **common_multisusie_kwargs,
 )
 
 assert(np.max(np.abs(ss_fit.pip - indiv_fit.pip)) < 1e-10)
@@ -83,13 +86,10 @@ ss_fit = MultiSuSiE.multisusie_rss(
     s_list = se_list,
     R_list = R_list,
     varY_list = varY_list,
-    rho = np.array([[1, 0.75, 0.75], [0.75, 1, 0.75], [0.75, 0.75, 1]]),
     population_sizes = N_list,
-    L = 10,
-    scaled_prior_variance = 0.2,
     single_population_mac_thresh = 5,
     low_memory_mode = False,
-    min_abs_corr = 0
+    **common_multisusie_kwargs,
 )
 assert(all([np.nanmax(np.abs(R_copy - R)) < 1e-10 for (R_copy, R) in zip(R_list_copy, R_list)]))
 assert(all([(np.isnan(R_copy) == np.isnan(R)).all() for (R_copy, R) in zip(R_list_copy, R_list)]))
@@ -104,14 +104,14 @@ R_list_copy = [R.copy() for R in R_list]
 XTX_list = []
 XTY_list = []
 for i in range(len(R_list)):
-    XTX, XTY = MultiSuSiE.recover_XTX_and_XTY(
+    XTY = MultiSuSiE.recover_XTX_and_XTY(
         beta_hat_list[i],
         se_list[i],
         R_list_copy[i],
         varY_list[i],
         N_list[i]
     )
-    XTX_list.append(XTX)
+    XTX_list.append(R_list_copy[i])
     XTY_list.append(XTY)
 
 X_l2_arr = np.array([np.diag(XTX) for XTX in XTX_list])
@@ -120,7 +120,7 @@ for i in range(len(XTX_list)):
 assert(all([np.nanmax(np.abs(R - XTX)) < 1e-10 for (R, XTX) in zip(R_list, XTX_list)]))
 
 
-# TEST 4: test that recover_XTX_and_XTY_from_Z recovers XTX and XTY with standardized genotypes and pehnotypes
+# TEST 4: test that recover_XTX_and_XTY_from_Z recovers XTX and XTY with standardized genotypes and phenotypes
 z_list = [b/s for (b,s) in zip(beta_hat_list, se_list)]
 with np.errstate(divide='ignore',invalid='ignore'):
     geno_std_list = [geno / np.std(geno, axis = 0, ddof = 1) for geno in geno_list]
@@ -139,5 +139,3 @@ for i in range(len(z_list)):
     assert(np.nanmax(np.abs(np.nan_to_num(XTY, 0) - XTY_std_list[i])) < 1e-10)
 
 print('No tests failed!')
-
-
