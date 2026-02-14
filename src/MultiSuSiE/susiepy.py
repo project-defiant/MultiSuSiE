@@ -127,9 +127,21 @@ def multisusie(
     coverage: float representing the minimum coverage of credible sets
     min_abs_corr: float representing the minimum absolute correlation between
         any pair of variants in a credible set (purity). For each pair of variants,
-        the max is taken across ancestries. In the case where min_abs_corr = 0,
-        low_memory_mode = True, and recover_R = False, the purity of credible
-        sets will not be calculated. 
+        the max is taken across ancestries.
+    check_null_threshold: float representing the difference in loglikelihood that
+        the estimated prior variance has to beat zero by in order to avoid being
+        set to zero after iter_before_zeroing_effects iterations.
+    float_type: numpy float type used. Set to np.float32 to minimize memory
+        consumption.
+    low_memory_mode: boolean, if True, the input X_list arrays will be modified
+        in place during standardization to reduce memory use. BUT, THE INPUT
+        GENOTYPE MATRICES IN X_list WILL BE CHANGED. If you need X_list
+        unchanged after this call, set low_memory_mode to False.
+    calculate_purity: boolean, whether to calculate credible set purity.
+        If False, purity values in the returned sets are not computed.
+    n_purity: integer, maximum number of variants to use when computing purity.
+        If a credible set contains more than n_purity variants, a random subset
+        of size n_purity is used for purity calculations.
     variant_ids: length P list of strings representing the variant IDs. If 
         provided, sets will contain a fifth entry, containing the variant ids
         of the variants contained in each set. 
@@ -137,6 +149,15 @@ def multisusie(
     """
 
     t0 = time.time()
+    # In regular mode we avoid mutating caller-owned containers.
+    # In low-memory mode we preserve historical in-place behavior.
+    if not low_memory_mode:
+        X_list = list(X_list)
+        Y_list = list(Y_list)
+    else:
+        print('low memory mode is on. THE INPUT GENOTYPE MATRICES IN X_list ' +
+              'WILL BE STANDARDIZED IN PLACE AND CHANGED.')
+
     #check input
     assert len(X_list) == len(Y_list)
     assert np.all([X.shape[1] == X_list[0].shape[1] for X in X_list])
