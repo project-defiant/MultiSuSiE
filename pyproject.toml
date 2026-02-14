@@ -17,3 +17,7 @@ dependencies = [
     'numba'
 ]
 
+[project.optional-dependencies]
+test = [
+    'pytest'
+]
