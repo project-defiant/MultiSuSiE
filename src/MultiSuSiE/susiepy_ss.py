@@ -1,13 +1,10 @@
 import numpy as np
 from tqdm import tqdm
-import scipy.linalg as la
 import sys
 import numba
-import copy
 import random
 import functools
 from scipy.optimize import minimize_scalar
-from scipy.optimize import minimize
 
 
 class S: 
@@ -99,7 +96,7 @@ def multisusie_rss(
         because it doesn't have access to the information that would allow us to 
         approximate the minor allele frequency or minor allele count. 
         It's also kind of weird to standardize the genotypes within each 
-        population beacuse variants that are rare in one population and common 
+        population because variants that are rare in one population and common 
         in other other will be assigned huge effect sizes.
 
     R_list: length K list of PxP numpy arrays representing the LD correlation 
@@ -137,7 +134,7 @@ def multisusie_rss(
         and estimate_prior_method is not set to None.
     prior_weights: numpy P-array of floats representing the prior probability
         of causality for each variant. Give None to use a uniform prior
-    standardize: boolean, whether to adjust summmary statistics to be as if 
+    standardize: boolean, whether to adjust summary statistics to be as if 
         genotypes were standardized to have mean 0 and variance 1
     pop_spec_standardization: boolean, if standardize is True, whether to 
         adjust summary statistics to be as if genotypes were standardized
@@ -157,7 +154,7 @@ def multisusie_rss(
         for a component to be included when estimating PIPs
     max_iter: integer, maximum number of iterations to run
     tol: float, after iter_before_zeroing_effects iterations, results
-        are returned if the ELBO increases by less than tol in an ieration
+        are returned if the ELBO increases by less than tol in an iteration
     verbose: boolean which indicates if an progress bar should be displayed
     coverage: float representing the minimum coverage of credible sets
     min_abs_corr: float representing the minimum absolute correlation between
@@ -177,7 +174,7 @@ def multisusie_rss(
         than this value in a single population will be censored in that population.
         The variant will not be censored in the other populations. 
         If mac_list is not None, mac_list is used for the filtering.
-        If mac_list is None, but maf_list is not, mac is caclulated using
+        If mac_list is None, but maf_list is not, mac is calculated using
         maf_list and population_sizes. Otherwise, if mac_list is None, 
         maf_list is None, and b_list and s_list are provided as input, then
         minor allele counts will be estimated under an assumption of
@@ -185,10 +182,10 @@ def multisusie_rss(
     mac_list: length K list of floats representing the minor allele count for
         each variant in each population.
     multi_population_maf_thresh: float, variants with minor allele frequency 
-        less than this value in ALL poopulations will be censored. Note that 
+        less than this value in ALL populations will be censored. Note that 
         it's probably faster computationally to do this before calling this 
         function. If maf_list is not None, maf_list is used for the filtering.
-        If maf_list is None, but mac_list is not, maf is caclulated using
+        If maf_list is None, but mac_list is not, maf is calculated using
         mac_list and population_sizes. Otherwise, if maf_list is None, 
         mac_list is None, and b_list and s_list are provided as input, then
         minor allele frequencies will be estimated under an assumption of
@@ -266,14 +263,20 @@ def multisusie_rss(
     # check input list lengths
     K = len(R_list)
     if z_list is None:
-        assert len(s_list) == K
-        assert len(b_list) == K
+        if len(s_list) != K:
+            raise ValueError("s_list and R_list must have the same length")
+        if len(b_list) != K:
+            raise ValueError("b_list and R_list must have the same length")
     else:
-        assert len(z_list) == K
+        if len(z_list) != K:
+            raise ValueError("z_list and R_list must have the same length")
     if varY_list is not None:
-        assert len(varY_list) == K
-    assert len(population_sizes) == K
-    assert np.isscalar(rho) | ((rho.shape[0] == K) & (rho.shape[1] == K))
+        if len(varY_list) != K:
+            raise ValueError("varY_list and R_list must have the same length")
+    if len(population_sizes) != K:
+        raise ValueError("population_sizes and R_list must have the same length")
+    if not (np.isscalar(rho) or ((rho.shape[0] == K) and (rho.shape[1] == K))):
+        raise ValueError("rho must be a scalar or a K x K matrix where K=len(R_list)")
 
     # make copies of R if low_memory_mode=False to avoid modifying the input data 
     if low_memory_mode:
@@ -438,7 +441,7 @@ susie_multi_rss = multisusie_rss
 def recover_XTX_and_XTY(b, s, R, YTY, n):
     """ Recover XTX and XTY from GWAS summary statistics. INPUT R IS MUTATED 
 
-    THIS FUNCTION MUTATES INPUT R to reduce memory consumpation. BE CAREFUL!! 
+    THIS FUNCTION MUTATES INPUT R to reduce memory consumption. BE CAREFUL!! 
     see page 4 of the supplement of Zou et al. 2022 PLoS Genetics for a derivation
 
     Parameters
@@ -470,7 +473,7 @@ def recover_XTX_and_XTY(b, s, R, YTY, n):
 def recover_XTX_and_XTY_from_Z(z, R, n, float_type = np.float32):
     """ Recover XTX and XTY from z scores and LD correlation matrix
 
-    THIS FUNCTION MUTATES INPUT R to reduce memory consumpation. BE CAREFUL!! 
+    THIS FUNCTION MUTATES INPUT R to reduce memory consumption. BE CAREFUL!! 
     This is equivalent to using standardized genotype and phenotype
 
     Parameters
@@ -541,7 +544,7 @@ def susie_multi_ss(
         and estimate_prior_method is not set to None.
     prior_weights: numpy P-array of floats representing the prior probability
         of causality for each variant. Give None to use a uniform prior
-    standardize: boolean, whether to adjust summmary statistics to be as if 
+    standardize: boolean, whether to adjust summary statistics to be as if 
         genotypes were standardized to have mean 0 and variance 1
     pop_spec_standardization: boolean, if standardize is True, whether to 
         adjust summary statistics to be as if genotypes were standardized
@@ -562,7 +565,7 @@ def susie_multi_ss(
         for a component to be included when estimating PIPs
     max_iter: integer, maximum number of iterations to run
     tol: float, after iter_before_zeroing_effects iterations, results
-        are returned if the ELBO increases by less than tol in an ieration
+        are returned if the ELBO increases by less than tol in an iteration
     verbose: boolean which indicates if an progress bar should be displayed
     R_list: length K list of PxP numpy arrays representing the LD correlation.
         If set to None, and min_abs_corr > 0, the LD correlation matrices will
@@ -606,13 +609,17 @@ def susie_multi_ss(
     """
 
     #check input dimensions
-    assert len(XTX_list) == len(XTY_list)
-    assert np.all([XTX.shape[1] == XTX_list[0].shape[1] for XTX in XTX_list])
-    assert np.all([XTX.shape[0] == XTY.shape[0] for (XTX,XTY) in zip(XTX_list, XTY_list)])
+    if len(XTX_list) != len(XTY_list):
+        raise ValueError("XTX_list and XTY_list must have the same length")
+    if not np.all([XTX.shape[1] == XTX_list[0].shape[1] for XTX in XTX_list]):
+        raise ValueError("all matrices in XTX_list must have the same number of columns")
+    if not np.all([XTX.shape[0] == XTY.shape[0] for (XTX, XTY) in zip(XTX_list, XTY_list)]):
+        raise ValueError("each XTX_list[i] and XTY_list[i] must have matching dimensions")
     if prior_weights is not None:
         prior_weights = prior_weights.astype(float_type)
 
-    assert not np.any([np.any(np.isnan(XTX)) for XTX in XTX_list])
+    if np.any([np.any(np.isnan(XTX)) for XTX in XTX_list]):
+        raise ValueError("XTX_list must not contain NaN values")
         
     #compute w_pop (the relative size of each population)
     population_sizes = np.array(population_sizes)
@@ -621,7 +628,8 @@ def susie_multi_ss(
     #compute rho properties
     rho = rho.astype(float_type)
     logdet_rho_sign, logdet_rho = np.linalg.slogdet(rho)
-    assert logdet_rho_sign>0
+    if logdet_rho_sign <= 0:
+        raise ValueError("rho must be positive definite")
 
     X_l2_arr = np.array([np.diag(XTX) for XTX in XTX_list], dtype = float_type)
 
@@ -645,13 +653,14 @@ def susie_multi_ss(
     #init setup
     p = XTX_list[0].shape[1]
 
-    if np.isscalar(scaled_prior_variance) & standardize:
-        assert 0 < scaled_prior_variance <= 1
+    if np.isscalar(scaled_prior_variance) and standardize and not (0 < scaled_prior_variance <= 1):
+        raise ValueError("scaled_prior_variance must be in (0, 1] when scalar and standardize=True")
     if prior_weights is None:
         prior_weights = np.zeros(p, dtype=float_type) + 1.0/p
     else:
         prior_weights = (prior_weights / np.sum(prior_weights)).astype(float_type)
-    assert prior_weights.shape[0] == p
+    if prior_weights.shape[0] != p:
+        raise ValueError("prior_weights must have length equal to the number of variants")
     if p<L: L=p
 
     # initialize s, which tracks the current model parameter estimates
@@ -716,7 +725,7 @@ def susie_multi_ss(
                 float_type = float_type
             )
             if np.any(s.sigma2 < 0):
-                print('minimum resdiual variance less than 0. Is there mismatch between the correlation matrix and association statistics?')
+                print('minimum residual variance less than 0. Is there mismatch between the correlation matrix and association statistics?')
 
     elbo = elbo[1:i+2] # Remove first (infinite) entry, and trailing NAs.
     s.elbo = elbo
@@ -1283,4 +1292,3 @@ def recover_R_from_XTX(XTX, X_l2):
     with np.errstate(divide='ignore', invalid = 'ignore'):
         XTX /= np.sqrt(np.nan_to_num(X_l2, 1))
         XTX /= np.sqrt(np.expand_dims(np.nan_to_num(X_l2, 1), 1))
-

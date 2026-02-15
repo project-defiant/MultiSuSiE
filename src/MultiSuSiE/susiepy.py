@@ -1,11 +1,9 @@
-import numpy as np; np.set_printoptions(precision=3)
+import numpy as np
 from tqdm import tqdm #
 import scipy.stats as stats
-import scipy.linalg as la
 import logging
 import time
 import sys
-from scipy.optimize import minimize_scalar
 from . import susiepy_ss
 
 #TODO:
@@ -85,7 +83,7 @@ def multisusie(
     ----------
     X_list: Length K list of numpy arrays, one for each population. Rows correspond
         to samples and the columns correspond to variants. Each array should
-        contain the same set of variants in the same order. Its fine if 
+        contain the same set of variants in the same order. It's fine if 
         some columns are constant. 
     Y_list: Length K list of one dimensional numpy arrays, one for each population. 
         Rows correspond to samples. Samples should be in the same order as in 
@@ -101,7 +99,7 @@ def multisusie(
         and estimate_prior_method is not set to None.
     prior_weights: numpy P-array of floats representing the prior probability
         of causality for each variant. Give None to use a uniform prior
-    standardize: boolnea, whether to standardize the genotypes to have
+    standardize: boolean, whether to standardize the genotypes to have
         variance of 1.
     residual_variance: Length K numpy array of floats representing the residual
         variance for each population.
@@ -122,7 +120,7 @@ def multisusie(
     residual_variance_upperbound: float, upper bound on the residual variance
     residual_variance_lowerbound: float, lower bound on the residual variance
     tol: float, after iter_before_zeroing_effects iterations, results
-        are returned if the ELBO increases by less than tol in an ieration
+        are returned if the ELBO increases by less than tol in an iteration
     verbose: boolean which indicates if the objective function should be printed
     coverage: float representing the minimum coverage of credible sets
     min_abs_corr: float representing the minimum absolute correlation between
@@ -159,13 +157,17 @@ def multisusie(
               'WILL BE STANDARDIZED IN PLACE AND CHANGED.')
 
     #check input
-    assert len(X_list) == len(Y_list)
-    assert np.all([X.shape[1] == X_list[0].shape[1] for X in X_list])
-    assert np.all([X.shape[0] == Y.shape[0] for X,Y in zip(X_list, Y_list)])
+    if len(X_list) != len(Y_list):
+        raise ValueError("X_list and Y_list must have the same length")
+    if not np.all([X.shape[1] == X_list[0].shape[1] for X in X_list]):
+        raise ValueError("all matrices in X_list must have the same number of columns")
+    if not np.all([X.shape[0] == Y.shape[0] for X, Y in zip(X_list, Y_list)]):
+        raise ValueError("each X_list[i] and Y_list[i] must have the same number of rows")
     if prior_weights is not None:
         prior_weights = prior_weights.astype(float_type)
     
-    assert not np.any([np.any(np.isnan(X)) for X in X_list])
+    if np.any([np.any(np.isnan(X)) for X in X_list]):
+        raise ValueError("X_list must not contain NaN values")
     
     #remove missing individuals
     for i in range(len(X_list)):
@@ -184,7 +186,8 @@ def multisusie(
     #compute rho properties
     rho = rho.astype(float_type)
     logdet_rho_sign, logdet_rho = np.linalg.slogdet(rho)
-    assert logdet_rho_sign>0
+    if logdet_rho_sign <= 0:
+        raise ValueError("rho must be positive definite")
 
     #compute X mean and std
     cm_arr = np.array([X.mean(axis=0) for X in X_list], dtype=float_type)
@@ -213,7 +216,8 @@ def multisusie(
         
     
     #create a C-contiguous version of X
-    assert np.all([X.flags['F_CONTIGUOUS'] == X_std_list[0].flags['F_CONTIGUOUS'] for X in X_std_list])
+    if not np.all([X.flags['F_CONTIGUOUS'] == X_std_list[0].flags['F_CONTIGUOUS'] for X in X_std_list]):
+        raise ValueError("all matrices in X_list must have consistent memory layout")
     if X_std_list[0].flags['F_CONTIGUOUS']:
         for i in range(len(X_std_list)):
             X_std_list[i] = np.ascontiguousarray(X_std_list[i])
@@ -229,15 +233,16 @@ def multisusie(
     p = X_list[0].shape[1]
     varY = np.concatenate(Y_list).var(ddof=1)
     varY_list = [Y.var(ddof=1) for Y in Y_list]
-    if np.isscalar(scaled_prior_variance):
-        assert 0 < scaled_prior_variance <= 1
+    if np.isscalar(scaled_prior_variance) and not (0 < scaled_prior_variance <= 1):
+        raise ValueError("scaled_prior_variance must be in (0, 1] when scalar")
     if residual_variance is None:
         residual_variance = np.array(varY_list, dtype=float_type)
     if prior_weights is None:
         prior_weights = np.zeros(p, dtype=float_type) + 1.0/p
     else:
         prior_weights = (prior_weights / np.sum(prior_weights)).astype(float_type)
-    assert prior_weights.shape[0] == p
+    if prior_weights.shape[0] != p:
+        raise ValueError("prior_weights must have length equal to the number of variants")
     if p<L: L=p
     s = S(X_std_list, L, scaled_prior_variance, residual_variance, varY, prior_weights, float_type = float_type)
     elbo = np.zeros(max_iter+1) + np.nan

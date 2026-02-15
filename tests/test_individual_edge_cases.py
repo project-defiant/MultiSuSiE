@@ -73,7 +73,7 @@ def test_individual_input_shape_validation():
     x = np.random.default_rng(11).normal(size=(20, 4))
     y = np.random.default_rng(12).normal(size=20)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         MultiSuSiE.multisusie(
             X_list=[x, x],
             Y_list=[y],
@@ -82,7 +82,7 @@ def test_individual_input_shape_validation():
             min_abs_corr=0,
         )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         MultiSuSiE.multisusie(
             X_list=[x],
             Y_list=[y[:-1]],
