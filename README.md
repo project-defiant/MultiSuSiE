@@ -3,7 +3,9 @@ MultiSuSiE is a multi-ancestry extension of the [Sum of Single Effects model](ht
 
 This MultiSuSiE implementation follows the [susieR](https://github.com/stephenslab/susieR) implementation as closely as possible. We thank the susieR developers for their work. 
 
-For details of the method see our [preprint](https://www.medrxiv.org/content/10.1101/2024.05.13.24307291v1).
+Please cite:
+
+Rossen, J., Shi, H., Strober, B.J. et al. MultiSuSiE improves multi-ancestry fine-mapping in All of Us whole-genome sequencing data. Nat Genet 58, 67–76 (2026). https://doi.org/10.1038/s41588-025-02450-5
 
 ## Installation
 
