@@ -18,5 +18,8 @@ def test_low_memory_true_mutates_r_inputs(synthetic_data):
         **synthetic_data.common,
     )
 
-    any_changed = any(np.nanmax(np.abs(before - after)) > 1e-10 for before, after in zip(r_before, r_list))
+    any_changed = any(
+        np.nanmax(np.abs(before - after)) > 1e-10
+        for before, after in zip(r_before, r_list)
+    )
     assert any_changed

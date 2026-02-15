@@ -5,7 +5,9 @@ import MultiSuSiE
 
 
 @pytest.mark.parametrize("method", ["individual", "rss"])
-def test_elbo_is_monotone_in_restricted_coordinate_ascent_regime(synthetic_data, method):
+def test_elbo_is_monotone_in_restricted_coordinate_ascent_regime(
+    synthetic_data, method
+):
     kwargs = dict(synthetic_data.common)
     kwargs.update(
         estimate_residual_variance=False,
@@ -33,7 +35,6 @@ def test_elbo_is_monotone_in_restricted_coordinate_ascent_regime(synthetic_data,
             population_sizes=synthetic_data.n_list,
             single_population_mac_thresh=0,
             low_memory_mode=False,
-            recover_R=False,
             **kwargs,
         )
 

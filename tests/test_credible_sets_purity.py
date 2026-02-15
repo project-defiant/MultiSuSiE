@@ -56,15 +56,17 @@ def _make_reasonable_filtering_case(seed=4):
     with np.errstate(divide="ignore", invalid="ignore"):
         b_list = [xy / xd for xy, xd in zip(xty, xtx_diag)]
     n_list = [n1, n2]
-    residuals = [np.expand_dims(y, 1) - (x * b) for x, y, b in zip(x_list, y_list, b_list)]
-    ssr = [np.sum(r ** 2, axis=0) for r in residuals]
+    residuals = [
+        np.expand_dims(y, 1) - (x * b) for x, y, b in zip(x_list, y_list, b_list)
+    ]
+    ssr = [np.sum(r**2, axis=0) for r in residuals]
     s_list = [np.sqrt(s / ((n - 2) * xd)) for s, n, xd in zip(ssr, n_list, xtx_diag)]
     r_list = [np.corrcoef(x, rowvar=False) for x in x_list]
     vary_list = [np.var(y, ddof=1) for y in y_list]
     return x_list, y_list, b_list, s_list, r_list, vary_list, n_list, common
 
 
-def test_rss_low_memory_without_recover_r_skips_purity(synthetic_data):
+def test_rss_low_memory_with_zero_min_abs_corr_skips_purity(synthetic_data):
     kwargs = dict(synthetic_data.common)
     kwargs["min_abs_corr"] = 0
     fit = MultiSuSiE.multisusie_rss(
@@ -74,7 +76,6 @@ def test_rss_low_memory_without_recover_r_skips_purity(synthetic_data):
         varY_list=synthetic_data.vary_list,
         population_sizes=synthetic_data.n_list,
         low_memory_mode=True,
-        recover_R=False,
         single_population_mac_thresh=0,
         **kwargs,
     )
@@ -82,9 +83,9 @@ def test_rss_low_memory_without_recover_r_skips_purity(synthetic_data):
     assert np.all(np.isnan(purity))
 
 
-def test_rss_low_memory_with_recover_r_computes_purity(synthetic_data):
+def test_rss_low_memory_with_positive_min_abs_corr_computes_purity(synthetic_data):
     kwargs = dict(synthetic_data.common)
-    kwargs["min_abs_corr"] = 0
+    kwargs["min_abs_corr"] = 0.1
     fit = MultiSuSiE.multisusie_rss(
         b_list=[b.copy() for b in synthetic_data.beta_hat_list],
         s_list=[s.copy() for s in synthetic_data.se_list],
@@ -92,7 +93,6 @@ def test_rss_low_memory_with_recover_r_computes_purity(synthetic_data):
         varY_list=synthetic_data.vary_list,
         population_sizes=synthetic_data.n_list,
         low_memory_mode=True,
-        recover_R=True,
         single_population_mac_thresh=0,
         **kwargs,
     )
@@ -125,8 +125,12 @@ def test_individual_calculate_purity_flag_controls_purity_output(synthetic_data)
 def test_get_purity_x_respects_n_purity():
     cs = np.array([0, 1, 2], dtype=int)
     r = np.eye(3)
-    purity_all = susiepy_ss.get_purity_x(cs=cs, R_list=[r], min_abs_cor=0, n_purity=3, X_list=None)
-    purity_subsampled = susiepy_ss.get_purity_x(cs=cs, R_list=[r], min_abs_cor=0, n_purity=1, X_list=None)
+    purity_all = susiepy_ss.get_purity_x(
+        cs=cs, R_list=[r], min_abs_cor=0, n_purity=3, X_list=None
+    )
+    purity_subsampled = susiepy_ss.get_purity_x(
+        cs=cs, R_list=[r], min_abs_cor=0, n_purity=1, X_list=None
+    )
     assert np.isclose(purity_all, 0.0)
     assert np.isclose(purity_subsampled, 1.0)
 
@@ -183,7 +187,6 @@ def test_end_to_end_purity_values_match_direct_recomputation(synthetic_data, met
             population_sizes=synthetic_data.n_list,
             single_population_mac_thresh=0,
             low_memory_mode=False,
-            recover_R=False,
             **kwargs,
         )
     else:
@@ -222,7 +225,6 @@ def test_end_to_end_purity_filtering_matches_threshold(synthetic_data, method):
             population_sizes=synthetic_data.n_list,
             single_population_mac_thresh=0,
             low_memory_mode=False,
-            recover_R=False,
             **kwargs,
         )
     else:
@@ -246,7 +248,9 @@ def test_end_to_end_purity_filtering_matches_threshold(synthetic_data, method):
 
 @pytest.mark.parametrize("method", ["rss", "individual"])
 def test_end_to_end_purity_filtering_activates_for_reasonable_threshold(method):
-    x_list, y_list, b_list, s_list, r_list, vary_list, n_list, common = _make_reasonable_filtering_case()
+    x_list, y_list, b_list, s_list, r_list, vary_list, n_list, common = (
+        _make_reasonable_filtering_case()
+    )
 
     if method == "rss":
         baseline = MultiSuSiE.multisusie_rss(
@@ -257,7 +261,6 @@ def test_end_to_end_purity_filtering_activates_for_reasonable_threshold(method):
             population_sizes=n_list,
             single_population_mac_thresh=0,
             low_memory_mode=False,
-            recover_R=False,
             min_abs_corr=0,
             **common,
         )
@@ -290,7 +293,6 @@ def test_end_to_end_purity_filtering_activates_for_reasonable_threshold(method):
             population_sizes=n_list,
             single_population_mac_thresh=0,
             low_memory_mode=False,
-            recover_R=False,
             min_abs_corr=threshold,
             **common,
         )

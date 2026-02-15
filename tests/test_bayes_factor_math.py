@@ -46,7 +46,9 @@ def _design_for_variant(x_list, variant_idx):
     return z
 
 
-def _direct_multi_pop_log_bf_for_variant(x_list, y_list, residual_variance, rho, prior_variance, variant_idx):
+def _direct_multi_pop_log_bf_for_variant(
+    x_list, y_list, residual_variance, rho, prior_variance, variant_idx
+):
     y = np.concatenate(y_list)
     n_total = y.shape[0]
 
@@ -67,7 +69,9 @@ def _direct_multi_pop_log_bf_for_variant(x_list, y_list, residual_variance, rho,
     return loglik1 - loglik0
 
 
-def _direct_multi_pop_posterior_for_variant(x_list, y_list, residual_variance, rho, prior_variance, variant_idx):
+def _direct_multi_pop_posterior_for_variant(
+    x_list, y_list, residual_variance, rho, prior_variance, variant_idx
+):
     y = np.concatenate(y_list)
     z = _design_for_variant(x_list, variant_idx)
     a = rho * np.sqrt(np.outer(prior_variance, prior_variance))
@@ -82,7 +86,9 @@ def _direct_multi_pop_posterior_for_variant(x_list, y_list, residual_variance, r
 
 
 @pytest.mark.parametrize("prior_var", [1e-6, 0.05, 0.2, 1.0])
-def test_single_population_compute_lbf_matches_direct_bayesian_linear_regression(prior_var):
+def test_single_population_compute_lbf_matches_direct_bayesian_linear_regression(
+    prior_var,
+):
     rng = np.random.default_rng(2026)
     n = 30
     p = 7
@@ -118,7 +124,10 @@ def test_single_population_compute_lbf_matches_direct_bayesian_linear_regression
     )
 
     lbf_direct = np.array(
-        [_direct_log_bf_single_predictor(x[:, j], y, sigma2, prior_var) for j in range(p)],
+        [
+            _direct_log_bf_single_predictor(x[:, j], y, sigma2, prior_var)
+            for j in range(p)
+        ],
         dtype=float,
     )
 
@@ -248,7 +257,9 @@ def test_single_population_posterior_moments_match_direct_gaussian_conditioning(
     direct_second = np.array(direct_second, dtype=float)
     np.testing.assert_allclose(post_mean_indiv[0], direct_means, rtol=0, atol=1e-10)
     np.testing.assert_allclose(post_mean_ss[0], direct_means, rtol=0, atol=1e-10)
-    np.testing.assert_allclose(post_mean2_indiv[0, 0], direct_second, rtol=0, atol=1e-10)
+    np.testing.assert_allclose(
+        post_mean2_indiv[0, 0], direct_second, rtol=0, atol=1e-10
+    )
     np.testing.assert_allclose(post_mean2_ss[0, 0], direct_second, rtol=0, atol=1e-10)
 
 
@@ -298,5 +309,9 @@ def test_multipopulation_posterior_moments_match_direct_gaussian_conditioning():
         )
         np.testing.assert_allclose(post_mean_indiv[:, j], m_direct, rtol=0, atol=1e-10)
         np.testing.assert_allclose(post_mean_ss[:, j], m_direct, rtol=0, atol=1e-10)
-        np.testing.assert_allclose(post_mean2_indiv[:, :, j], s2_direct, rtol=0, atol=1e-10)
-        np.testing.assert_allclose(post_mean2_ss[:, :, j], s2_direct, rtol=0, atol=1e-10)
+        np.testing.assert_allclose(
+            post_mean2_indiv[:, :, j], s2_direct, rtol=0, atol=1e-10
+        )
+        np.testing.assert_allclose(
+            post_mean2_ss[:, :, j], s2_direct, rtol=0, atol=1e-10
+        )

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import numpy as np
 import pytest
 
-
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC_PATH = os.path.join(REPO_ROOT, "src")
 
@@ -54,18 +53,29 @@ def synthetic_data() -> SyntheticData:
     beta_list = [beta_yri, beta_ceu, beta_jpt]
 
     rng = np.random.default_rng(1)
-    y_list = [geno.dot(beta) + rng.standard_normal(geno.shape[0]) for geno, beta in zip(geno_list, beta_list)]
+    y_list = [
+        geno.dot(beta) + rng.standard_normal(geno.shape[0])
+        for geno, beta in zip(geno_list, beta_list)
+    ]
     y_list = [y - np.mean(y) for y in y_list]
 
     xty_list = [geno.T.dot(y) for geno, y in zip(geno_list, y_list)]
     xtx_diag_list = [np.diagonal(geno.T.dot(geno)) for geno in geno_list]
     with np.errstate(divide="ignore", invalid="ignore"):
-        beta_hat_list = [xty / xtx_diag for xty, xtx_diag in zip(xty_list, xtx_diag_list)]
+        beta_hat_list = [
+            xty / xtx_diag for xty, xtx_diag in zip(xty_list, xtx_diag_list)
+        ]
 
     n_list = [geno.shape[0] for geno in geno_list]
-    residuals_list = [np.expand_dims(y, 1) - (geno * beta) for y, geno, beta in zip(y_list, geno_list, beta_hat_list)]
-    ssr_list = [np.sum(resid ** 2, axis=0) for resid in residuals_list]
-    se_list = [np.sqrt(ssr / ((n - 2) * xtx)) for ssr, n, xtx in zip(ssr_list, n_list, xtx_diag_list)]
+    residuals_list = [
+        np.expand_dims(y, 1) - (geno * beta)
+        for y, geno, beta in zip(y_list, geno_list, beta_hat_list)
+    ]
+    ssr_list = [np.sum(resid**2, axis=0) for resid in residuals_list]
+    se_list = [
+        np.sqrt(ssr / ((n - 2) * xtx))
+        for ssr, n, xtx in zip(ssr_list, n_list, xtx_diag_list)
+    ]
 
     with np.errstate(divide="ignore", invalid="ignore"):
         r_list = [np.corrcoef(geno, rowvar=False) for geno in geno_list]

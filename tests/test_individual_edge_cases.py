@@ -114,5 +114,7 @@ def test_individual_multisusie_mutates_x_when_low_memory_true():
         max_iter=60,
     )
 
-    any_changed = any(np.max(np.abs(before - after)) > 1e-10 for before, after in zip(x_before, x_in))
+    any_changed = any(
+        np.max(np.abs(before - after)) > 1e-10 for before, after in zip(x_before, x_in)
+    )
     assert any_changed
