@@ -11,7 +11,6 @@ def test_individual_matches_summary_statistics(synthetic_data):
         varY_list=synthetic_data.vary_list,
         population_sizes=synthetic_data.n_list,
         low_memory_mode=False,
-        recover_R=False,
         single_population_mac_thresh=0,
         **synthetic_data.common,
     )

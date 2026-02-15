@@ -19,5 +19,19 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    'pytest'
+    'pytest',
+    'ruff',
+    'black'
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+# Start with high-signal correctness checks and expand gradually.
+select = ["E9", "F63", "F7", "F82"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']

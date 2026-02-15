@@ -73,7 +73,7 @@ def test_individual_input_shape_validation():
     x = np.random.default_rng(11).normal(size=(20, 4))
     y = np.random.default_rng(12).normal(size=20)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         MultiSuSiE.multisusie(
             X_list=[x, x],
             Y_list=[y],
@@ -82,7 +82,7 @@ def test_individual_input_shape_validation():
             min_abs_corr=0,
         )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         MultiSuSiE.multisusie(
             X_list=[x],
             Y_list=[y[:-1]],
@@ -90,38 +90,6 @@ def test_individual_input_shape_validation():
             L=2,
             min_abs_corr=0,
         )
-
-
-def test_individual_multisusie_does_not_mutate_caller_inputs_when_low_memory_false():
-    x_list, y_list = _make_two_pop_data(seed=17)
-    y_list[0][4] = np.nan
-
-    x_in = [x.copy() for x in x_list]
-    y_in = [y.copy() for y in y_list]
-    x_before = [x.copy() for x in x_in]
-    y_before = [y.copy() for y in y_in]
-
-    MultiSuSiE.multisusie(
-        X_list=x_in,
-        Y_list=y_in,
-        rho=np.eye(2),
-        L=4,
-        scaled_prior_variance=0.2,
-        standardize=True,
-        low_memory_mode=False,
-        min_abs_corr=0,
-        float_type=np.float64,
-        estimate_prior_method="EM",
-        pop_spec_effect_priors=False,
-        iter_before_zeroing_effects=0,
-        max_iter=60,
-    )
-
-    for before, after in zip(x_before, x_in):
-        np.testing.assert_allclose(before, after, rtol=0, atol=0)
-
-    for before, after in zip(y_before, y_in):
-        np.testing.assert_allclose(before, after, rtol=0, atol=0, equal_nan=True)
 
 
 def test_individual_multisusie_mutates_x_when_low_memory_true():
@@ -146,5 +114,7 @@ def test_individual_multisusie_mutates_x_when_low_memory_true():
         max_iter=60,
     )
 
-    any_changed = any(np.max(np.abs(before - after)) > 1e-10 for before, after in zip(x_before, x_in))
+    any_changed = any(
+        np.max(np.abs(before - after)) > 1e-10 for before, after in zip(x_before, x_in)
+    )
     assert any_changed

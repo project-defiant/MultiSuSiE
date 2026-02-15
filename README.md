@@ -82,3 +82,13 @@ When running MultiSuSiE on binary traits, we recommend providing `b_list`, `s_li
 ## Questions?
 
 Feel free to open an issue on GitHub (preferred) or email jordanerossen@gmail.com.
+
+## Development checks
+
+To run the same quality checks locally that run in CI:
+
+```bash
+pip install -e ".[test]"
+ruff check .
+pytest -q
+```

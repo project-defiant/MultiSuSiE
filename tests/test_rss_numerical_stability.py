@@ -12,14 +12,15 @@ def test_rss_float32_and_float64_are_close(synthetic_data):
         population_sizes=synthetic_data.n_list,
         single_population_mac_thresh=0,
         low_memory_mode=False,
-        recover_R=False,
         rho=synthetic_data.common["rho"],
         L=synthetic_data.common["L"],
         scaled_prior_variance=synthetic_data.common["scaled_prior_variance"],
         min_abs_corr=synthetic_data.common["min_abs_corr"],
         estimate_prior_method=synthetic_data.common["estimate_prior_method"],
         pop_spec_effect_priors=synthetic_data.common["pop_spec_effect_priors"],
-        iter_before_zeroing_effects=synthetic_data.common["iter_before_zeroing_effects"],
+        iter_before_zeroing_effects=synthetic_data.common[
+            "iter_before_zeroing_effects"
+        ],
     )
 
     fit64 = MultiSuSiE.multisusie_rss(float_type=np.float64, **base_kwargs)

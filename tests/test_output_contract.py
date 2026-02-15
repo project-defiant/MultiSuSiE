@@ -12,7 +12,6 @@ def test_rss_output_shapes_and_attributes(synthetic_data):
         population_sizes=synthetic_data.n_list,
         single_population_mac_thresh=0,
         low_memory_mode=False,
-        recover_R=False,
         **synthetic_data.common,
     )
 
@@ -68,7 +67,6 @@ def test_variant_ids_are_propagated_to_credible_sets(synthetic_data):
         population_sizes=synthetic_data.n_list,
         single_population_mac_thresh=0,
         low_memory_mode=False,
-        recover_R=False,
         variant_ids=variant_ids,
         **synthetic_data.common,
     )
