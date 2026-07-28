@@ -9,7 +9,37 @@ Rossen, J., Shi, H., Strober, B.J. et al. MultiSuSiE improves multi-ancestry fin
 
 ## Installation
 
-There are 2 ways to install MultiSuSiE. MultiSuSiE is a Python package and does not have a command-line interface. We hope to add a command-line interface in the future.
+The repository contains both the numerical Python library and a CLI application
+for running one fine-mapping locus set from Gentropy-compatible Parquet inputs.
+
+### Installing with uv
+
+The development and runtime environments are locked with `uv`:
+
+```bash
+uv sync --all-groups
+uv run multisusie --help
+```
+
+The CLI accepts one FineMappingLocusSet Parquet file, one
+MultiAncestryPairwiseLD Parquet dataset, and JSONL study metadata. It writes one
+StudyLocus Parquet file and one AnnData H5AD file:
+
+```bash
+uv run multisusie \
+  --fine-mapping-locus-set fine_mapping_locus_set.parquet \
+  --multi-ancestry-pairwise-ld multi_ancestry_pairwise_ld.parquet \
+  --study-metadata study_metadata.jsonl \
+  --run-id RUN_001 \
+  --fine-mapping-locus-set-id LOCUS_SET_001 \
+  --study-locus-output results/study_locus.parquet \
+  --extended-results-output results/multisusie.h5ad
+```
+
+All method parameters are exposed as CLI options. Use `uv run multisusie
+--help` for the complete list. The command publishes neither result if input
+validation, numerical convergence, credible-set quality gating, or output
+writing fails.
 
 ### Installing into a fresh conda environment
 
@@ -47,7 +77,7 @@ git clone https://github.com/jordanero/MultiSuSiE
 bash MultiSuSiE/install.sh
 ```
 
-## Running MultiSuSiE
+## Running the numerical library
 
 The primary top-level MultiSuSie function is `multisusie_rss`. `multisusie_rss` accepts lists of numpy arrays containing GWAS summary statistics and LD matrices and performs the full fine-mapping algorithm. To see its full documentation, just start a Python session and type `import MultiSuSiE`, then `help(MultiSuSiE.multisusie_rss)`. 
 
@@ -85,12 +115,29 @@ When running MultiSuSiE on binary traits, we recommend providing `b_list`, `s_li
 
 Feel free to open an issue on GitHub (preferred) or email jordanerossen@gmail.com.
 
+## Container execution
+
+The Docker image contains the runtime dependencies and exposes the CLI as its
+entrypoint:
+
+```bash
+docker build --tag multisusie:local .
+docker run --rm multisusie:local --help
+make docker-smoke
+```
+
+The smoke test creates a tiny synthetic locus, invokes the public CLI, and
+checks that both output artifacts are produced without host-installed
+application dependencies.
+
 ## Development checks
 
 To run the same quality checks locally that run in CI:
 
 ```bash
-pip install -e ".[test]"
-ruff check .
-pytest -q
+uv run --frozen ruff check src/multisusie_cli tests
+uv run --frozen ruff format --check src/multisusie_cli tests
+uv run --frozen ty check src/multisusie_cli
+uv run --frozen pytest -q
+uv run --frozen python scripts/smoke_test.py
 ```

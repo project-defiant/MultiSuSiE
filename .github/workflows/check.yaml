@@ -1,5 +1,8 @@
 name: Check
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [main]
@@ -13,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - run: uv sync --frozen --all-groups
       - run: uv run --frozen pytest -rxs
       - run: uv run --frozen ty check src/multisusie_cli --output-format=github
@@ -23,6 +29,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
       - run: uv sync --frozen --all-groups
       - run: uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
       - run: uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
@@ -38,4 +47,6 @@ jobs:
           context: .
           load: true
           tags: multisusie:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - run: docker run --rm --entrypoint uv multisusie:ci run --no-dev python scripts/smoke_test.py
