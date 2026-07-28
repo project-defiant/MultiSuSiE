@@ -21,6 +21,8 @@ smoke: ## Run the synthetic CLI smoke test
 
 docker-smoke: ## Build the image and run the synthetic smoke test inside it
 	@docker build --tag multisusie:smoke .
+	@docker run --rm multisusie:smoke --help
+	@docker run --rm --entrypoint "" multisusie:smoke multisusie --help
 	@docker run --rm --entrypoint uv multisusie:smoke run --no-dev python scripts/smoke_test.py
 
 clean: ## Remove local build and test artifacts

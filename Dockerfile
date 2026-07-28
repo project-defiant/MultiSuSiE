@@ -9,4 +9,6 @@ COPY . /app
 
 RUN uv sync --frozen --no-dev
 
-ENTRYPOINT ["uv", "run", "multisusie"]
+ENV PATH="/app/.venv/bin:${PATH}"
+
+ENTRYPOINT ["multisusie"]
