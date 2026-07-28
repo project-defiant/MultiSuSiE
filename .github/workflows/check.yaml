@@ -24,5 +24,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --frozen --all-groups
-      - run: uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py
-      - run: uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py
+      - run: uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
+      - run: uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py

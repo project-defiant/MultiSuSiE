@@ -9,8 +9,8 @@ dev: ## Install development dependencies and prek
 	@uvx prek install
 
 lint: ## Run linting, formatting, and type checks
-	@uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py
-	@uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py
+	@uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
+	@uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
 	@uv run --frozen ty check src/multisusie_cli
 
 test: ## Run the test suite
