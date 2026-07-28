@@ -100,6 +100,21 @@ def test_prepare_inputs_orders_variants_and_masks_absent_ancestry(
     np.testing.assert_allclose(prepared.populations[1].ld_matrix, [[1, 0.5], [0.5, 1]])
 
 
+def test_prepare_inputs_reads_spark_parquet_dataset_with_metadata_files(
+    tmp_path: Path,
+) -> None:
+    inputs = _write_inputs(tmp_path)
+    dataset = tmp_path / "ld_dataset"
+    dataset.mkdir()
+    inputs.multi_ancestry_pairwise_ld.rename(dataset / "part-00000.snappy.parquet")
+    (dataset / "._SUCCESS.crc").touch()
+    inputs = inputs.model_copy(update={"multi_ancestry_pairwise_ld": dataset})
+
+    prepared = prepare_inputs(inputs)
+
+    assert prepared.variant_ids == ["1_10_C_T", "1_20_A_G"]
+
+
 def test_prepare_inputs_fails_on_missing_summary_statistics(tmp_path: Path) -> None:
     inputs = _write_inputs(tmp_path)
     locus = pl.read_parquet(inputs.fine_mapping_locus_set)

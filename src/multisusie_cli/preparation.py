@@ -42,9 +42,14 @@ class PreparedLocus(BaseModel):
     populations: list[PopulationArrays]
 
 
+def _parquet_input(path: Path) -> Path | str:
+    """Return a file path or parquet-only glob for a dataset directory."""
+    return str(path / "**" / "*.parquet") if path.is_dir() else path
+
+
 def prepare_inputs(inputs: RunInputs) -> PreparedLocus:
     """Read, validate, and align locus, metadata, and pairwise-LD inputs."""
-    locus = pl.read_parquet(inputs.fine_mapping_locus_set)
+    locus = pl.read_parquet(_parquet_input(inputs.fine_mapping_locus_set))
     metadata = _read_metadata(inputs.study_metadata)
     _validate_locus_set(locus, inputs.fine_mapping_locus_set_id, metadata)
 
@@ -54,7 +59,7 @@ def prepare_inputs(inputs: RunInputs) -> PreparedLocus:
     variant_index = {variant_id: index for index, variant_id in enumerate(variant_ids)}
     chromosomes = [row["chromosome"] for row in ordered_variants]
     positions = [row["position"] for row in ordered_variants]
-    ld = pl.read_parquet(inputs.multi_ancestry_pairwise_ld)
+    ld = pl.read_parquet(_parquet_input(inputs.multi_ancestry_pairwise_ld))
     _validate_ld_columns(ld)
 
     populations = [
