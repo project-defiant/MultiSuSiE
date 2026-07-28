@@ -25,6 +25,8 @@ class PopulationArrays(BaseModel):
     variant_present: np.ndarray
     z_scores: np.ndarray
     ld_matrix: np.ndarray
+    betas: np.ndarray | None = None
+    standard_errors: np.ndarray | None = None
 
 
 class PreparedLocus(BaseModel):
@@ -195,6 +197,24 @@ def _prepare_population(
         variant_present=present,
         z_scores=z_scores,
         ld_matrix=ld_matrix,
+        betas=np.asarray(
+            [
+                float(study_variants[variant_id]["beta"])
+                if variant_id in study_variants
+                else np.nan
+                for variant_id in variant_ids
+            ],
+            dtype=np.float32,
+        ),
+        standard_errors=np.asarray(
+            [
+                float(study_variants[variant_id]["standard_error"])
+                if variant_id in study_variants
+                else np.nan
+                for variant_id in variant_ids
+            ],
+            dtype=np.float32,
+        ),
     )
 
 
