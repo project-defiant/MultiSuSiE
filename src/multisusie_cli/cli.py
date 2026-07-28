@@ -1,5 +1,6 @@
 """Typer command-line interface for the MultiSuSiE application layer."""
 
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -7,7 +8,7 @@ import typer
 from loguru import logger
 
 from .anndata_output import write_anndata
-from .models import RunInputs, RunParameters
+from .models import MultiSuSiEStats, RunInputs, RunParameters
 from .preparation import PreparedLocus, prepare_inputs
 from .runner import FitQualityError, MultiSuSiEFit, run_multisusie
 from .study_locus_output import write_study_locus
@@ -24,6 +25,7 @@ def run(
     fine_mapping_locus_set_id: str = typer.Option(...),
     study_locus_output: Path = typer.Option(...),
     extended_results_output: Path = typer.Option(...),
+    stats_output: Path = typer.Option(...),
     rho: float = typer.Option(0.75, min=0, max=0.999999),
     L: int = typer.Option(10, min=1),
     scaled_prior_variance: float = typer.Option(0.2, min=0.0000001),
@@ -74,6 +76,39 @@ def run(
     try:
         prepared = prepare_inputs(inputs)
         fit = run_multisusie(prepared, parameters)
+    except FitQualityError as error:
+        _write_stats(
+            stats_output,
+            MultiSuSiEStats(
+                runId=inputs.run_id,
+                fineMappingLocusSetId=inputs.fine_mapping_locus_set_id,
+                status="FAILED",
+                converged=False,
+                reason=str(error),
+            ),
+        )
+        logger.warning("MultiSuSiE fit is not reportable: {}", error)
+        return
+    except (OSError, ValueError) as error:
+        logger.error("MultiSuSiE run failed: {}", error)
+        raise typer.Exit(code=1) from error
+
+    if not fit.converged:
+        _write_stats(
+            stats_output,
+            MultiSuSiEStats(
+                runId=inputs.run_id,
+                fineMappingLocusSetId=inputs.fine_mapping_locus_set_id,
+                status="NON_CONVERGED",
+                converged=False,
+                niter=int(fit.raw.niter),
+                reason="MultiSuSiE fit did not converge",
+            ),
+        )
+        logger.warning("MultiSuSiE fit did not converge")
+        return
+
+    try:
         _write_outputs_atomically(
             fit=fit,
             prepared=prepared,
@@ -81,7 +116,18 @@ def run(
             study_locus_output=study_locus_output,
             extended_results_output=extended_results_output,
         )
-    except (FitQualityError, OSError, ValueError) as error:
+        _write_stats(
+            stats_output,
+            MultiSuSiEStats(
+                runId=inputs.run_id,
+                fineMappingLocusSetId=inputs.fine_mapping_locus_set_id,
+                status="SUCCESS",
+                converged=True,
+                niter=int(fit.raw.niter),
+                nReportableComponents=len(fit.passing_component_indices),
+            ),
+        )
+    except (OSError, ValueError) as error:
         logger.error("MultiSuSiE run failed: {}", error)
         raise typer.Exit(code=1) from error
     logger.info(
@@ -89,6 +135,14 @@ def run(
         inputs.run_id,
         inputs.fine_mapping_locus_set_id,
         len(fit.passing_component_indices),
+    )
+
+
+def _write_stats(output: Path, stats: MultiSuSiEStats) -> None:
+    """Write one status JSON record for the current locus-set invocation."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(stats.model_dump(exclude_none=True), sort_keys=True) + "\n"
     )
 
 

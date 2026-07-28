@@ -4,7 +4,7 @@ import numpy as np
 
 from multisusie_cli.models import RunParameters
 from multisusie_cli.preparation import PopulationArrays, PreparedLocus
-from multisusie_cli.runner import FitQualityError, run_multisusie
+from multisusie_cli.runner import run_multisusie
 
 
 def test_runner_returns_a_converged_reportable_fit() -> None:
@@ -33,7 +33,7 @@ def test_runner_returns_a_converged_reportable_fit() -> None:
     assert fit.raw.variant_ids == prepared.variant_ids
 
 
-def test_runner_rejects_non_converged_fit() -> None:
+def test_runner_returns_non_converged_fit_for_reporting() -> None:
     prepared = PreparedLocus(
         run_id="run-1",
         fine_mapping_locus_set_id="set-1",
@@ -52,5 +52,6 @@ def test_runner_rejects_non_converged_fit() -> None:
         ],
     )
 
-    with np.testing.assert_raises_regex(FitQualityError, "did not converge"):
-        run_multisusie(prepared, RunParameters(L=2, max_iter=1))
+    fit = run_multisusie(prepared, RunParameters(L=2, max_iter=1))
+
+    assert fit.converged is False

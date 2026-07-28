@@ -73,6 +73,7 @@ def main() -> None:
         )
         study_locus = root / "study_locus.parquet"
         extended = root / "fit.h5ad"
+        stats = root / "stats.json"
         result = CliRunner().invoke(
             app,
             [
@@ -90,6 +91,8 @@ def main() -> None:
                 str(study_locus),
                 "--extended-results-output",
                 str(extended),
+                "--stats-output",
+                str(stats),
                 "--L",
                 "2",
                 "--max-iter",
@@ -98,7 +101,7 @@ def main() -> None:
         )
         if result.exit_code != 0:
             raise RuntimeError(result.output) from result.exception
-        if not study_locus.is_file() or not extended.is_file():
+        if not study_locus.is_file() or not extended.is_file() or not stats.is_file():
             raise RuntimeError("Smoke test did not produce both output artifacts")
 
 

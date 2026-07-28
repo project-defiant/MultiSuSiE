@@ -27,7 +27,7 @@ class MultiSuSiEFit(BaseModel):
 
 
 def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiSuSiEFit:
-    """Run MultiSuSiE and reject fits that cannot be reported."""
+    """Run MultiSuSiE and retain convergence state for status reporting."""
     populations = prepared.populations
     raw = MultiSuSiE.multisusie_rss(
         R_list=[population.ld_matrix for population in populations],
@@ -54,10 +54,8 @@ def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiS
         variant_ids=prepared.variant_ids,
     )
     converged = bool(raw.converged)
-    if not converged:
-        raise FitQualityError("MultiSuSiE fit did not converge")
-    passing_component_indices = _passing_component_indices(raw)
-    if not passing_component_indices:
+    passing_component_indices = _passing_component_indices(raw) if converged else []
+    if converged and not passing_component_indices:
         raise FitQualityError("MultiSuSiE fit has no passing credible sets")
     return MultiSuSiEFit(
         raw=raw,

@@ -1,5 +1,6 @@
 """End-to-end tests for the MultiSuSiE command-line application."""
 
+import json
 from pathlib import Path
 
 from anndata import read_h5ad
@@ -29,6 +30,8 @@ def _arguments(inputs: RunInputs, tmp_path: Path) -> list[str]:
         str(tmp_path / "results" / "study_locus.parquet"),
         "--extended-results-output",
         str(tmp_path / "results" / "fit.h5ad"),
+        "--stats-output",
+        str(tmp_path / "results" / "stats.json"),
         "--L",
         "2",
         "--max-iter",
@@ -43,6 +46,7 @@ def test_cli_runs_fit_and_writes_both_outputs(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / "results" / "study_locus.parquet").is_file()
+    assert json.loads((tmp_path / "results" / "stats.json").read_text())["status"] == "SUCCESS"
     extended = read_h5ad(tmp_path / "results" / "fit.h5ad")
     assert extended.uns["runId"] == "run-1"
     assert extended.n_obs == 2
@@ -61,7 +65,10 @@ def test_cli_does_not_publish_outputs_when_fit_is_not_reportable(
     arguments[arguments.index("30")] = "1"
     result = runner.invoke(app, arguments)
 
-    assert result.exit_code != 0
+    assert result.exit_code == 0, result.output
+    stats = json.loads((output_dir / "stats.json").read_text())
+    assert stats["status"] == "NON_CONVERGED"
+    assert stats["converged"] is False
     assert not study_locus.exists()
     assert not extended.exists()
     assert not list(output_dir.glob(".*.tmp*"))

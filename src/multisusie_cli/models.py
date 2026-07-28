@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing_extensions import Literal
 
 
 class StudyMetadata(BaseModel):
@@ -59,3 +60,17 @@ class RunInputs(BaseModel):
         if not value.exists():
             raise ValueError(f"Input path does not exist: {value}")
         return value
+
+
+class MultiSuSiEStats(BaseModel):
+    """Machine-readable status emitted for every MultiSuSiE invocation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    runId: str
+    fineMappingLocusSetId: str
+    status: Literal["SUCCESS", "NON_CONVERGED", "FAILED"]
+    converged: bool | None = None
+    niter: int | None = None
+    nReportableComponents: int | None = None
+    reason: str | None = None
