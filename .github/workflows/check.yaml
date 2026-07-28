@@ -1,0 +1,28 @@
+name: Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test and type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen --all-groups
+      - run: uv run --frozen pytest -rxs
+      - run: uv run --frozen ty check src/multisusie_cli --output-format=github
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen --all-groups
+      - run: uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py
+      - run: uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py

@@ -10,11 +10,17 @@ authors = [
 ]
 readme = 'README.md'
 version='1.0'
+requires-python = ">=3.11,<3.14"
 dependencies = [
-    'numpy', 
-    'scipy', 
-    'tqdm', 
-    'numba'
+    'anndata>=0.11',
+    'loguru>=0.7',
+    'numba',
+    'numpy',
+    'polars>=1.0',
+    'pydantic>=2.0',
+    'scipy',
+    'tqdm',
+    'typer>=0.16'
 ]
 
 [project.optional-dependencies]
@@ -32,6 +38,12 @@ line-length = 88
 # Start with high-signal correctness checks and expand gradually.
 select = ["E9", "F63", "F7", "F82"]
 
+[project.scripts]
+multisusie = "multisusie_cli.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']
@@ -40,4 +52,7 @@ target-version = ['py311']
 dev = [
     "jupyter>=1.1.1",
     "plotnine>=0.15.7",
+    "pytest>=8.0",
+    "ruff>=0.11",
+    "ty>=0.0.1",
 ]
