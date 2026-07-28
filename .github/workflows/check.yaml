@@ -26,3 +26,16 @@ jobs:
       - run: uv sync --frozen --all-groups
       - run: uv run --frozen ruff check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
       - run: uv run --frozen ruff format --check src/multisusie_cli tests/test_application_models.py tests/test_preparation.py tests/test_runner.py tests/test_anndata_output.py tests/test_study_locus_output.py
+
+  container:
+    name: Container smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: multisusie:ci
+      - run: docker run --rm --entrypoint uv multisusie:ci run --no-dev python scripts/smoke_test.py

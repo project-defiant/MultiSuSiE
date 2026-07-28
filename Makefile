@@ -1,4 +1,4 @@
-.PHONY: help dev lint test clean
+.PHONY: help dev lint test smoke docker-smoke clean
 
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "\033[36m%-9s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -15,6 +15,13 @@ lint: ## Run linting, formatting, and type checks
 
 test: ## Run the test suite
 	@uv run --frozen pytest -rxs
+
+smoke: ## Run the synthetic CLI smoke test
+	@uv run --frozen python scripts/smoke_test.py
+
+docker-smoke: ## Build the image and run the synthetic smoke test inside it
+	@docker build --tag multisusie:smoke .
+	@docker run --rm --entrypoint uv multisusie:smoke run --no-dev python scripts/smoke_test.py
 
 clean: ## Remove local build and test artifacts
 	@rm -rf .venv .pytest_cache .ruff_cache *.egg-info
