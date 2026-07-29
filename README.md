@@ -1,4 +1,17 @@
 # MultiSuSiE
+
+> [!IMPORTANT]
+> **Open Targets fork.** This repository is maintained by
+> [Open Targets](https://www.opentargets.org/) for integration with the
+> [`opentargets/nf-fine-mapping`](https://github.com/opentargets/nf-fine-mapping)
+> pipeline. It adds the pipeline-facing CLI, validated Gentropy-compatible
+> schemas, status and extended-result outputs, reproducible packaging,
+> containers, and CI. The scientific method and numerical implementation
+> originate from the canonical
+> [`jordanero/MultiSuSiE`](https://github.com/jordanero/MultiSuSiE)
+> project. This fork is not the canonical upstream distribution; please retain
+> the original attribution and citation when using it.
+
 MultiSuSiE is a multi-ancestry extension of the [Sum of Single Effects model](https://github.com/stephenslab/susieR) (Wang et al. 2020 J. R. Statist. Soc. B, Zou et al. 2022 PLoS Genet.) implemented in Python. 
 
 This MultiSuSiE implementation follows the [susieR](https://github.com/stephenslab/susieR) implementation as closely as possible. We thank the susieR developers for their work. 
@@ -41,9 +54,11 @@ All method parameters are exposed as CLI options. Use `uv run multisusie
 validation, numerical convergence, credible-set quality gating, or output
 writing fails.
 
-### Installing into a fresh conda environment
+### Canonical upstream conda installation
 
-The easiest way to install MultiSuSiE is to create a fresh conda environment.
+The commands below install the canonical upstream project and its original
+interface. For the Open Targets pipeline interface, use the `uv` installation
+from this fork described above.
 
 To create a fresh conda environment capable of running MultiSuSiE run the following commands:
 ```
