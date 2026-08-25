@@ -54,6 +54,14 @@ All method parameters are exposed as CLI options. Use `uv run multisusie
 validation, numerical convergence, credible-set quality gating, or output
 writing fails.
 
+The application uses `--purity-min-r2` (default `0.01`) as the reportability
+threshold. It is strictly between zero and one. The numerical implementation
+receives the equivalent minimum absolute correlation (`sqrt(purity_min_r2)`),
+while both output contracts report the canonical R-squared value. The H5AD
+field is `credibleSetPurityMinR2`; the StudyLocus field is `purityMinR2`.
+When no component passes, the diagnostic H5AD is retained and the stats status
+is `NO_REPORTABLE_CREDIBLE_SETS`; no StudyLocus rows are published.
+
 ### Canonical upstream conda installation
 
 The commands below install the canonical upstream project and its original
@@ -117,7 +125,7 @@ ss_fit = MultiSuSiE.multisusie_rss(
 
 ## Running MultiSuSiE faster
 
-MultiSuSiE with summary statistics (`multisusie_rss`) runtime and memory requirements can be drastically improved by setting `low_memory_mode = True`. This parameter is not enabled by default because the input summary statistic and LD matrix numpy arrays will be mutated over the course of function evaluation and will not be returned to their initial state. If you understand this, we recommend setting `low_memory_mode = True`.
+MultiSuSiE with summary statistics (`multisusie_rss`) runtime and memory requirements can be drastically improved by setting `low_memory_mode = True`. The pipeline-facing application keeps this disabled because purity must be calculated before a credible set can be published. The low-memory numerical mode remains available for exploratory library use where that publication guarantee is not required.
 
 ## Running MultiSuSiE on binary traits
 

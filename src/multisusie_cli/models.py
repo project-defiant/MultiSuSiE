@@ -36,7 +36,7 @@ class RunParameters(BaseModel):
     max_iter: int = Field(default=100, gt=0)
     tol: float = Field(default=1e-3, gt=0)
     coverage: float = Field(default=0.95, gt=0, le=1)
-    min_abs_corr: float = Field(default=0, ge=0, le=1)
+    purity_min_r2: float = Field(default=0.01, gt=0, lt=1)
     low_memory_mode: bool = False
 
 
@@ -69,8 +69,12 @@ class MultiSuSiEStats(BaseModel):
 
     runId: str
     fineMappingLocusSetId: str
-    status: Literal["SUCCESS", "NON_CONVERGED", "FAILED"]
+    status: Literal["SUCCESS", "NON_CONVERGED", "NO_REPORTABLE_CREDIBLE_SETS", "FAILED"]
     converged: bool | None = None
     niter: int | None = None
     nReportableComponents: int | None = None
+    purityMinR2Threshold: float | None = None
+    nModeledComponents: int | None = None
+    nPurityPassingComponents: int | None = None
+    nPurityFilteredComponents: int | None = None
     reason: str | None = None

@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 
 from anndata import read_h5ad
+import polars as pl
+import pytest
 from typer.testing import CliRunner
 
 from multisusie_cli import cli as cli_module
@@ -46,10 +48,30 @@ def test_cli_runs_fit_and_writes_both_outputs(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / "results" / "study_locus.parquet").is_file()
-    assert json.loads((tmp_path / "results" / "stats.json").read_text())["status"] == "SUCCESS"
+    assert (
+        json.loads((tmp_path / "results" / "stats.json").read_text())["status"]
+        == "SUCCESS"
+    )
     extended = read_h5ad(tmp_path / "results" / "fit.h5ad")
     assert extended.uns["runId"] == "run-1"
     assert extended.n_obs == 2
+    study_locus = pl.read_parquet(tmp_path / "results" / "study_locus.parquet")
+    for row in study_locus.iter_rows(named=True):
+        component = int(row["credibleSetIndex"])
+        assert row["purityMinR2"] == pytest.approx(
+            float(extended.obs.iloc[component]["credibleSetPurityMinR2"])
+        )
+
+
+def test_cli_rejects_non_positive_purity_threshold(tmp_path: Path) -> None:
+    inputs = _write_inputs(tmp_path)
+    arguments = _arguments(inputs, tmp_path)
+    arguments.extend(["--purity-min-r2", "0"])
+
+    result = runner.invoke(app, arguments)
+
+    assert result.exit_code != 0
+    assert "purity_min_r2" in result.output
 
 
 def test_cli_does_not_publish_outputs_when_fit_is_not_reportable(
@@ -72,6 +94,32 @@ def test_cli_does_not_publish_outputs_when_fit_is_not_reportable(
     assert not study_locus.exists()
     assert not extended.exists()
     assert not list(output_dir.glob(".*.tmp*"))
+
+
+def test_cli_keeps_diagnostic_h5ad_when_purity_filters_every_component(
+    tmp_path: Path, monkeypatch
+) -> None:
+    inputs = _write_inputs(tmp_path)
+    original_run = cli_module.run_multisusie
+
+    def force_no_reportable_components(prepared, parameters):
+        fit = original_run(prepared, parameters)
+        fit.passing_component_indices = []
+        return fit
+
+    monkeypatch.setattr(cli_module, "run_multisusie", force_no_reportable_components)
+
+    arguments = _arguments(inputs, tmp_path)
+    result = runner.invoke(app, arguments)
+
+    assert result.exit_code == 0, result.output
+    stats = json.loads((tmp_path / "results" / "stats.json").read_text())
+    assert stats["status"] == "NO_REPORTABLE_CREDIBLE_SETS"
+    assert stats["nModeledComponents"] == 2
+    assert stats["nPurityPassingComponents"] == 0
+    assert stats["nPurityFilteredComponents"] == 2
+    assert (tmp_path / "results" / "fit.h5ad").is_file()
+    assert not (tmp_path / "results" / "study_locus.parquet").exists()
 
 
 def test_cli_rolls_back_both_outputs_when_second_publish_fails(

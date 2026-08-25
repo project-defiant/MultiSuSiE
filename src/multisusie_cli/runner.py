@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 import MultiSuSiE
@@ -46,7 +47,7 @@ def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiS
         max_iter=parameters.max_iter,
         tol=parameters.tol,
         coverage=parameters.coverage,
-        min_abs_corr=parameters.min_abs_corr,
+        min_abs_corr=math.sqrt(parameters.purity_min_r2),
         float_type=np.float32,
         low_memory_mode=parameters.low_memory_mode,
         single_population_mac_thresh=0,
@@ -54,9 +55,9 @@ def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiS
         variant_ids=prepared.variant_ids,
     )
     converged = bool(raw.converged)
-    passing_component_indices = _passing_component_indices(raw) if converged else []
-    if converged and not passing_component_indices:
-        raise FitQualityError("MultiSuSiE fit has no passing credible sets")
+    passing_component_indices = (
+        _passing_component_indices(raw, parameters.purity_min_r2) if converged else []
+    )
     return MultiSuSiEFit(
         raw=raw,
         converged=converged,
@@ -64,12 +65,13 @@ def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiS
     )
 
 
-def _passing_component_indices(raw: Any) -> list[int]:
-    """Extract passing credible-set component indices from a library result."""
+def _passing_component_indices(raw: Any, purity_min_r2: float) -> list[int]:
+    """Select components using the canonical minimum-purity R² threshold."""
     try:
-        passing = np.asarray(raw.sets[3], dtype=bool)
+        purity = np.asarray(raw.sets[1], dtype=float)
     except (AttributeError, IndexError, TypeError) as error:
         raise FitQualityError(
-            "MultiSuSiE result has no credible-set pass mask"
+            "MultiSuSiE result has no credible-set purity values"
         ) from error
+    passing = np.isfinite(purity) & (purity * purity >= purity_min_r2)
     return [index for index, is_passing in enumerate(passing.tolist()) if is_passing]

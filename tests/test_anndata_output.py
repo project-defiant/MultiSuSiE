@@ -47,3 +47,7 @@ def test_write_anndata_preserves_complete_fit_and_provenance(tmp_path: Path) -> 
     assert result.uns["runId"] == "run-1"
     assert result.uns["fineMappingLocusSetId"] == "set-1"
     assert result.uns["methodParameters"]["rho"] == 0.75
+    assert "credibleSetPurityMinR2" in result.obs.columns
+    assert "credibleSetPurity" not in result.obs.columns
+    assert result.uns["purityMinR2Threshold"] == parameters.purity_min_r2
+    assert result.uns["lowMemoryMode"] is False
