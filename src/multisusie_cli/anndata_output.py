@@ -24,16 +24,26 @@ def write_anndata(
     raw = fit.raw
     n_components = raw.alpha.shape[0]
     component_indices = list(range(n_components))
-    purity = np.asarray(raw.sets[1], dtype=np.float32)
-    coverage = np.asarray(raw.sets[2], dtype=np.float32)
-    passing = np.asarray(raw.sets[3], dtype=bool)
+    purity = (
+        np.full(n_components, np.nan, dtype=np.float32)
+        if raw.sets[1] is None
+        else np.asarray(raw.sets[1], dtype=np.float32)
+    )
+    purity_min_r2 = purity * purity
+    coverage = (
+        np.full(n_components, np.nan, dtype=np.float32)
+        if raw.sets[2] is None
+        else np.asarray(raw.sets[2], dtype=np.float32)
+    )
+    passing = np.zeros(n_components, dtype=bool)
+    passing[fit.passing_component_indices] = True
     obs = pd.DataFrame(
         {
             "componentIndex": component_indices,
             "lbf": np.asarray(raw.lbf, dtype=np.float32),
             "KL": np.asarray(raw.KL, dtype=np.float32),
             "credibleSetCoverage": coverage,
-            "credibleSetPurity": purity,
+            "credibleSetPurityMinR2": purity_min_r2,
             "credibleSetPass": passing,
         },
         index=[f"component_{index}" for index in component_indices],
@@ -79,6 +89,8 @@ def write_anndata(
             "studyIds": [population.study_id for population in populations],
             "populationSizes": [population.sample_size for population in populations],
             "rho": parameters.rho,
+            "purityMinR2Threshold": parameters.purity_min_r2,
+            "lowMemoryMode": parameters.low_memory_mode,
             "methodParameters": parameters.model_dump(mode="json"),
             "converged": fit.converged,
             "niter": int(raw.niter),

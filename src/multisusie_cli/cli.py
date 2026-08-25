@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import typer
 from loguru import logger
+from pydantic import ValidationError
 
 from .anndata_output import write_anndata
 from .models import MultiSuSiEStats, RunInputs, RunParameters
@@ -39,7 +40,7 @@ def run(
     max_iter: int = typer.Option(100, min=1),
     tol: float = typer.Option(1e-3, min=0.000000000001),
     coverage: float = typer.Option(0.95, min=0.000001, max=1),
-    min_abs_corr: float = typer.Option(0, min=0, max=1),
+    purity_min_r2: float = typer.Option(0.01, min=1e-12, max=0.999999999999),
     low_memory_mode: bool = typer.Option(False),
 ) -> None:
     """Run MultiSuSiE for one fine-mapping locus set."""
@@ -50,23 +51,26 @@ def run(
         run_id=run_id,
         fine_mapping_locus_set_id=fine_mapping_locus_set_id,
     )
-    parameters = RunParameters(
-        rho=rho,
-        L=L,
-        scaled_prior_variance=scaled_prior_variance,
-        pop_spec_standardization=pop_spec_standardization,
-        estimate_residual_variance=estimate_residual_variance,
-        estimate_prior_variance=estimate_prior_variance,
-        estimate_prior_method=estimate_prior_method,
-        pop_spec_effect_priors=pop_spec_effect_priors,
-        iter_before_zeroing_effects=iter_before_zeroing_effects,
-        prior_tol=prior_tol,
-        max_iter=max_iter,
-        tol=tol,
-        coverage=coverage,
-        min_abs_corr=min_abs_corr,
-        low_memory_mode=low_memory_mode,
-    )
+    try:
+        parameters = RunParameters(
+            rho=rho,
+            L=L,
+            scaled_prior_variance=scaled_prior_variance,
+            pop_spec_standardization=pop_spec_standardization,
+            estimate_residual_variance=estimate_residual_variance,
+            estimate_prior_variance=estimate_prior_variance,
+            estimate_prior_method=estimate_prior_method,
+            pop_spec_effect_priors=pop_spec_effect_priors,
+            iter_before_zeroing_effects=iter_before_zeroing_effects,
+            prior_tol=prior_tol,
+            max_iter=max_iter,
+            tol=tol,
+            coverage=coverage,
+            purity_min_r2=purity_min_r2,
+            low_memory_mode=low_memory_mode,
+        )
+    except ValidationError as error:
+        raise typer.BadParameter(str(error)) from error
     logger.info(
         "Validated MultiSuSiE inputs for run_id={} locus_set_id={} with {}",
         inputs.run_id,
@@ -102,29 +106,56 @@ def run(
                 status="NON_CONVERGED",
                 converged=False,
                 niter=int(fit.raw.niter),
+                purityMinR2Threshold=parameters.purity_min_r2,
+                nModeledComponents=int(fit.raw.alpha.shape[0]),
+                nPurityPassingComponents=0,
+                nPurityFilteredComponents=int(fit.raw.alpha.shape[0]),
                 reason="MultiSuSiE fit did not converge",
             ),
         )
         logger.warning("MultiSuSiE fit did not converge")
         return
 
+    n_modeled_components = int(fit.raw.alpha.shape[0])
+    n_passing_components = len(fit.passing_component_indices)
+    n_filtered_components = n_modeled_components - n_passing_components
     try:
-        _write_outputs_atomically(
-            fit=fit,
-            prepared=prepared,
-            parameters=parameters,
-            study_locus_output=study_locus_output,
-            extended_results_output=extended_results_output,
-        )
+        if n_passing_components:
+            _write_outputs_atomically(
+                fit=fit,
+                prepared=prepared,
+                parameters=parameters,
+                study_locus_output=study_locus_output,
+                extended_results_output=extended_results_output,
+            )
+            status = "SUCCESS"
+        else:
+            _write_extended_results_atomically(
+                fit=fit,
+                prepared=prepared,
+                parameters=parameters,
+                extended_results_output=extended_results_output,
+            )
+            study_locus_output.unlink(missing_ok=True)
+            status = "NO_REPORTABLE_CREDIBLE_SETS"
         _write_stats(
             stats_output,
             MultiSuSiEStats(
                 runId=inputs.run_id,
                 fineMappingLocusSetId=inputs.fine_mapping_locus_set_id,
-                status="SUCCESS",
+                status=status,
                 converged=True,
                 niter=int(fit.raw.niter),
-                nReportableComponents=len(fit.passing_component_indices),
+                nReportableComponents=n_passing_components,
+                purityMinR2Threshold=parameters.purity_min_r2,
+                nModeledComponents=n_modeled_components,
+                nPurityPassingComponents=n_passing_components,
+                nPurityFilteredComponents=n_filtered_components,
+                reason=(
+                    "No credible sets passed the purity threshold"
+                    if not n_passing_components
+                    else None
+                ),
             ),
         )
     except (OSError, ValueError) as error:
@@ -134,7 +165,7 @@ def run(
         "MultiSuSiE completed for run_id={} locus_set_id={} with {} reportable components",
         inputs.run_id,
         inputs.fine_mapping_locus_set_id,
-        len(fit.passing_component_indices),
+        n_passing_components,
     )
 
 
@@ -184,6 +215,23 @@ def _write_outputs_atomically(
         temporary_extended_results.unlink(missing_ok=True)
         for _, backup in backups:
             backup.unlink(missing_ok=True)
+
+
+def _write_extended_results_atomically(
+    *,
+    fit: MultiSuSiEFit,
+    prepared: PreparedLocus,
+    parameters: RunParameters,
+    extended_results_output: Path,
+) -> None:
+    """Publish diagnostic H5AD output when no StudyLocus is reportable."""
+    temporary_extended_results = _temporary_path(extended_results_output)
+    try:
+        write_anndata(fit, prepared, parameters, temporary_extended_results)
+        extended_results_output.parent.mkdir(parents=True, exist_ok=True)
+        _replace(temporary_extended_results, extended_results_output)
+    finally:
+        temporary_extended_results.unlink(missing_ok=True)
 
 
 def _temporary_path(output: Path) -> Path:

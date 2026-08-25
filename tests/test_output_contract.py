@@ -57,7 +57,7 @@ def test_individual_output_shapes_and_attributes(synthetic_data):
 
 def test_variant_ids_are_propagated_to_credible_sets(synthetic_data):
     p = synthetic_data.beta_hat_list[0].shape[0]
-    variant_ids = [f"rs{i+1}" for i in range(p)]
+    variant_ids = [f"rs{i + 1}" for i in range(p)]
 
     fit = MultiSuSiE.multisusie_rss(
         b_list=[b.copy() for b in synthetic_data.beta_hat_list],
