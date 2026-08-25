@@ -40,7 +40,7 @@ def run(
     max_iter: int = typer.Option(100, min=1),
     tol: float = typer.Option(1e-3, min=0.000000000001),
     coverage: float = typer.Option(0.95, min=0.000001, max=1),
-    purity_min_r2: float = typer.Option(0.01, min=0, max=1),
+    purity_min_r2: float = typer.Option(0.01, min=1e-12, max=0.999999999999),
     low_memory_mode: bool = typer.Option(False),
 ) -> None:
     """Run MultiSuSiE for one fine-mapping locus set."""

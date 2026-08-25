@@ -71,7 +71,7 @@ def test_cli_rejects_non_positive_purity_threshold(tmp_path: Path) -> None:
     result = runner.invoke(app, arguments)
 
     assert result.exit_code != 0
-    assert "purity_min_r2" in result.output
+    assert "Invalid value" in result.output
 
 
 def test_cli_does_not_publish_outputs_when_fit_is_not_reportable(

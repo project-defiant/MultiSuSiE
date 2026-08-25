@@ -125,7 +125,7 @@ ss_fit = MultiSuSiE.multisusie_rss(
 
 ## Running MultiSuSiE faster
 
-MultiSuSiE with summary statistics (`multisusie_rss`) runtime and memory requirements can be drastically improved by setting `low_memory_mode = True`. The pipeline-facing application keeps this disabled because purity must be calculated before a credible set can be published. The low-memory numerical mode remains available for exploratory library use where that publication guarantee is not required.
+MultiSuSiE with summary statistics (`multisusie_rss`) runtime and memory requirements can be drastically improved by setting `low_memory_mode = True`. The pipeline-facing application keeps this disabled so the input arrays remain unchanged and the reportable output path is deterministic. With a positive purity threshold the numerical library can calculate purity in low-memory mode, but that mode remains available only for exploratory library use outside the pipeline-facing publication contract.
 
 ## Running MultiSuSiE on binary traits
 

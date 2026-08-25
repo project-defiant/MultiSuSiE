@@ -24,9 +24,17 @@ def write_anndata(
     raw = fit.raw
     n_components = raw.alpha.shape[0]
     component_indices = list(range(n_components))
-    purity = np.asarray(raw.sets[1], dtype=np.float32)
+    purity = (
+        np.full(n_components, np.nan, dtype=np.float32)
+        if raw.sets[1] is None
+        else np.asarray(raw.sets[1], dtype=np.float32)
+    )
     purity_min_r2 = purity * purity
-    coverage = np.asarray(raw.sets[2], dtype=np.float32)
+    coverage = (
+        np.full(n_components, np.nan, dtype=np.float32)
+        if raw.sets[2] is None
+        else np.asarray(raw.sets[2], dtype=np.float32)
+    )
     passing = np.zeros(n_components, dtype=bool)
     passing[fit.passing_component_indices] = True
     obs = pd.DataFrame(

@@ -68,10 +68,13 @@ def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiS
 def _passing_component_indices(raw: Any, purity_min_r2: float) -> list[int]:
     """Select components using the canonical minimum-purity R² threshold."""
     try:
-        purity = np.asarray(raw.sets[1], dtype=float)
+        purity_values = raw.sets[1]
     except (AttributeError, IndexError, TypeError) as error:
         raise FitQualityError(
             "MultiSuSiE result has no credible-set purity values"
         ) from error
+    if purity_values is None:
+        return []
+    purity = np.asarray(purity_values, dtype=float)
     passing = np.isfinite(purity) & (purity * purity >= purity_min_r2)
     return [index for index, is_passing in enumerate(passing.tolist()) if is_passing]
