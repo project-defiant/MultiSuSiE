@@ -21,7 +21,11 @@ jobs:
             - name: Read version
               id: version
               run: |
-                  VERSION=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+                  VERSION=$(sed -nE "s/^[[:space:]]*version[[:space:]]*=[[:space:]]*['\"]([^'\"]+)['\"].*/\1/p" pyproject.toml | head -n 1)
+                  if [ -z "$VERSION" ]; then
+                      echo "::error::Could not extract version from pyproject.toml"
+                      exit 1
+                  fi
                   echo "TAG=${VERSION}" >> "$GITHUB_OUTPUT"
 
             - name: Set up QEMU
