@@ -11,4 +11,4 @@ RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/.venv/bin:${PATH}"
 
-ENTRYPOINT ["multisusie"]
+CMD ["multisusie"]
