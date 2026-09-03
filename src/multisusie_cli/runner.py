@@ -30,30 +30,44 @@ class MultiSuSiEFit(BaseModel):
 def run_multisusie(prepared: PreparedLocus, parameters: RunParameters) -> MultiSuSiEFit:
     """Run MultiSuSiE and retain convergence state for status reporting."""
     populations = prepared.populations
-    raw = MultiSuSiE.multisusie_rss(
-        R_list=[population.ld_matrix for population in populations],
-        z_list=[population.z_scores for population in populations],
-        population_sizes=[population.sample_size for population in populations],
-        rho=parameters.rho,
-        L=parameters.L,
-        scaled_prior_variance=parameters.scaled_prior_variance,
-        pop_spec_standardization=parameters.pop_spec_standardization,
-        estimate_residual_variance=parameters.estimate_residual_variance,
-        estimate_prior_variance=parameters.estimate_prior_variance,
-        estimate_prior_method=parameters.estimate_prior_method,
-        pop_spec_effect_priors=parameters.pop_spec_effect_priors,
-        iter_before_zeroing_effects=parameters.iter_before_zeroing_effects,
-        prior_tol=parameters.prior_tol,
-        max_iter=parameters.max_iter,
-        tol=parameters.tol,
-        coverage=parameters.coverage,
-        min_abs_corr=math.sqrt(parameters.purity_min_r2),
-        float_type=np.float32,
-        low_memory_mode=parameters.low_memory_mode,
-        single_population_mac_thresh=0,
-        multi_population_maf_thresh=0,
-        variant_ids=prepared.variant_ids,
-    )
+    try:
+        raw = MultiSuSiE.multisusie_rss(
+            R_list=[population.ld_matrix for population in populations],
+            z_list=[population.z_scores for population in populations],
+            population_sizes=[population.sample_size for population in populations],
+            rho=parameters.rho,
+            L=parameters.L,
+            scaled_prior_variance=parameters.scaled_prior_variance,
+            pop_spec_standardization=parameters.pop_spec_standardization,
+            estimate_residual_variance=parameters.estimate_residual_variance,
+            estimate_prior_variance=parameters.estimate_prior_variance,
+            estimate_prior_method=parameters.estimate_prior_method,
+            pop_spec_effect_priors=parameters.pop_spec_effect_priors,
+            iter_before_zeroing_effects=parameters.iter_before_zeroing_effects,
+            prior_tol=parameters.prior_tol,
+            max_iter=parameters.max_iter,
+            tol=parameters.tol,
+            coverage=parameters.coverage,
+            min_abs_corr=math.sqrt(parameters.purity_min_r2),
+            float_type=np.float32,
+            low_memory_mode=parameters.low_memory_mode,
+            single_population_mac_thresh=0,
+            multi_population_maf_thresh=0,
+            variant_ids=prepared.variant_ids,
+        )
+    except AssertionError as error:
+        # MultiSuSiE's IBSS loop can drive a population's residual-variance
+        # estimate negative (LD/summary-statistics mismatch or numerical
+        # noise); it only warns when that happens and keeps iterating, so the
+        # next log-Bayes-factor computation hits a positive-definiteness
+        # assertion on a now-corrupted matrix. That's a fit-quality problem
+        # with this locus, not a bug in our code, so it's reported the same
+        # way as non-convergence rather than crashing the whole run.
+        raise FitQualityError(
+            "MultiSuSiE numerics failed an internal invariant, likely from "
+            "a population's residual-variance estimate going negative "
+            "(LD/summary-statistics mismatch)"
+        ) from error
     converged = bool(raw.converged)
     passing_component_indices = (
         _passing_component_indices(raw, parameters.purity_min_r2) if converged else []
