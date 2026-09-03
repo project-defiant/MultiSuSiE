@@ -1482,7 +1482,8 @@ def susie_get_cs(
             elif include_mask[i]:
                 cs_set.add(tuple(cs[i]))
     if not np.any(include_mask):
-        return ([[] for i in range(len(include_mask))], None, None, include_mask)
+        # Must be a list, matching the return below: callers do `s.sets.append(...)`.
+        return [[[] for i in range(len(include_mask))], None, None, include_mask]
 
     if calculate_purity:
         purity = np.array(
