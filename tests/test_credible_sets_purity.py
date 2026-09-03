@@ -174,6 +174,40 @@ def test_susie_get_cs_filters_by_min_abs_corr_only_when_calculating_purity():
     assert bool(cs_without_purity[3][0]) is True
 
 
+def test_susie_get_cs_returns_a_list_when_no_credible_sets_pass():
+    # Regression test: when every effect's prior variance is ~0, no variant
+    # clears the 1e-9 threshold, include_mask is all False, and susie_get_cs
+    # takes its early-exit branch. Callers (susie_multi_ss, susie_multi) always
+    # do `s.sets.append(...)` on this return value, so it must be a list, not
+    # a tuple, exactly like the non-early-exit return below it.
+    s = SimpleNamespace(
+        alpha=np.array([[0.6, 0.4, 0.0]], dtype=float),
+        V=np.array([[0.0]], dtype=float),
+    )
+    r = np.eye(3)
+
+    result = susiepy_ss.susie_get_cs(
+        s=s,
+        R_list=[r],
+        coverage=0.95,
+        min_abs_corr=0.5,
+        dedup=True,
+        n_purity=100,
+        calculate_purity=True,
+        X_list=None,
+    )
+
+    assert isinstance(result, list)
+    assert result[1] is None
+    assert result[2] is None
+    assert bool(result[3][0]) is False
+
+    # This is the exact call pattern in susie_multi_ss/susie_multi that crashed
+    # with AttributeError: 'tuple' object has no attribute 'append'.
+    result.append(["placeholder"])
+    assert result[-1] == ["placeholder"]
+
+
 @pytest.mark.parametrize("method", ["rss", "individual"])
 def test_end_to_end_purity_values_match_direct_recomputation(synthetic_data, method):
     kwargs = dict(synthetic_data.common)
